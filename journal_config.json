@@ -1,0 +1,13 @@
+{
+    "journal_name": "JAMA Neurology",
+    "Single-column width": "3.25 in (82.5 mm)",
+    "Double-column width": "6.875 in (174.6 mm)",
+    "Max figure height": "9.5 in (241 mm)",
+    "Resolution": ">=300 DPI for photographs/halftones; >=600 DPI for line art",
+    "Preferred formats": "high-res TIFF or EPS; PDF acceptable",
+    "Color mode": "RGB for online submission",
+    "Font": "sans-serif (Helvetica/Arial preferred), minimum 6 pt",
+    "File size limit": "10 MB per figure",
+    "Figure titles": "Bold, placed in the legend/caption — NOT inside the figure",
+    "Statistical reporting": "Test name, statistic, df, exact p-value required; n= in figure or legend; error bars must be defined"
+}
