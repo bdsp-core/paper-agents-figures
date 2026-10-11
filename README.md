@@ -77,3 +77,9 @@ The pipeline runs in three phases:
 - `anthropic` Python SDK
 - `Pillow` (for image metadata and downscaling)
 - `ANTHROPIC_API_KEY` environment variable
+
+## Review reports
+
+Generated reports under `reports/` are not committed, because they review unpublished manuscripts and this repo is
+public. The reports produced between 2026-03 and 2026-08 were archived to the BDSP internal staging bucket
+(`s3://bdsp-staging/local-backups/2026-10-11/paper-agents-figures/reports/`) on 2026-10-11.
