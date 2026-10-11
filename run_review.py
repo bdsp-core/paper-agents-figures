@@ -47,7 +47,7 @@ from agents import AGENTS
 # Defaults
 # ---------------------------------------------------------------------------
 DEFAULT_FIG_DIR = "."
-DEFAULT_MODEL = "claude-sonnet-4-6"
+DEFAULT_MODEL = "claude-opus-5"
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "reports")
 
 
@@ -128,6 +128,21 @@ def build_all_images_content(paths: list[str]) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Agent runner
 # ---------------------------------------------------------------------------
+def _text_of(resp) -> str:
+    """Concatenate the text blocks of a Messages response.
+
+    resp.content[0] is NOT always the text: on models with thinking enabled
+    (Claude Opus 5 and the rest of the 4.6+ family run adaptive thinking by
+    default) the first block is a ThinkingBlock, which has no .text.
+    """
+    parts = [b.text for b in resp.content if getattr(b, "type", None) == "text"]
+    if not parts:
+        raise RuntimeError(
+            f"model returned no text block (stop_reason={resp.stop_reason}, "
+            f"blocks={[getattr(b, 'type', '?') for b in resp.content]})")
+    return "\n".join(parts)
+
+
 def run_agent(client: anthropic.Anthropic, agent: dict, fig_paths: list[str],
               model: str, prior_reports: dict | None = None) -> str:
     """Run a single agent and return its text output."""
@@ -153,11 +168,11 @@ def run_agent(client: anthropic.Anthropic, agent: dict, fig_paths: list[str],
 
     resp = client.messages.create(
         model=model,
-        max_tokens=4096,
+        max_tokens=16000,
         system=system,
         messages=[{"role": "user", "content": content}],
     )
-    return resp.content[0].text
+    return _text_of(resp)
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +216,18 @@ def run_pipeline(fig_paths: list[str], agent_names: list[str] | None = None,
         print("DRY RUN — no API calls made.")
         return
 
-    client = anthropic.Anthropic()
+    # A single 529 used to destroy an entire run: eight agents x sixteen figures of completed work was
+    # discarded because the report is only written after the last agent returns. Two changes fix that --
+    # more retries here, and _safe() below, which records the failure as the agent's finding instead of
+    # raising.
+    client = anthropic.Anthropic(max_retries=8, timeout=900.0)
+
+    def _safe(label, fn):
+        try:
+            return fn()
+        except Exception as e:                                   # noqa: BLE001 - report, never abort
+            print(f"FAILED ({type(e).__name__})")
+            return f"_Agent failed: {type(e).__name__}: {e}_"
     all_reports: dict[str, str] = {}  # agent_name -> combined report text
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -213,9 +239,10 @@ def run_pipeline(fig_paths: list[str], agent_names: list[str] | None = None,
             fname = os.path.basename(path)
             print(f"  Reviewing {fname}...", end=" ", flush=True)
             t0 = time.time()
-            result = run_agent(client, agent, [path], model)
+            result = _safe(fname, lambda: run_agent(client, agent, [path], model))
             elapsed = time.time() - t0
-            print(f"done ({elapsed:.1f}s)")
+            if not result.startswith("_Agent failed"):
+                print(f"done ({elapsed:.1f}s)")
             agent_report_parts.append(f"### {fname}\n\n{result}")
         all_reports[agent["name"]] = "\n\n".join(agent_report_parts)
 
@@ -224,9 +251,10 @@ def run_pipeline(fig_paths: list[str], agent_names: list[str] | None = None,
         print(f"\n--- Agent: {agent['title']} (all figures) ---")
         print(f"  Sending {len(fig_paths)} figures...", end=" ", flush=True)
         t0 = time.time()
-        result = run_agent(client, agent, fig_paths, model)
+        result = _safe(agent["name"], lambda: run_agent(client, agent, fig_paths, model))
         elapsed = time.time() - t0
-        print(f"done ({elapsed:.1f}s)")
+        if not result.startswith("_Agent failed"):
+            print(f"done ({elapsed:.1f}s)")
         all_reports[agent["name"]] = result
 
     # --- Phase 3: Cross-figure orchestrator ---
@@ -234,10 +262,11 @@ def run_pipeline(fig_paths: list[str], agent_names: list[str] | None = None,
         print(f"\n--- Agent: {agent['title']} (final synthesis) ---")
         print(f"  Synthesizing {len(all_reports)} agent reports...", end=" ", flush=True)
         t0 = time.time()
-        result = run_agent(client, agent, fig_paths, model,
-                           prior_reports=all_reports)
+        result = _safe(agent["name"], lambda: run_agent(client, agent, fig_paths, model,
+                                                        prior_reports=all_reports))
         elapsed = time.time() - t0
-        print(f"done ({elapsed:.1f}s)")
+        if not result.startswith("_Agent failed"):
+            print(f"done ({elapsed:.1f}s)")
         all_reports[agent["name"]] = result
 
     # --- Save reports ---

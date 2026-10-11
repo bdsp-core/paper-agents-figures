@@ -1,13 +1,13 @@
 {
-    "journal_name": "JAMA Neurology",
-    "Single-column width": "3.25 in (82.5 mm)",
-    "Double-column width": "6.875 in (174.6 mm)",
-    "Max figure height": "9.5 in (241 mm)",
-    "Resolution": ">=300 DPI for photographs/halftones; >=600 DPI for line art",
-    "Preferred formats": "high-res TIFF or EPS; PDF acceptable",
-    "Color mode": "RGB for online submission",
-    "Font": "sans-serif (Helvetica/Arial preferred), minimum 6 pt",
+    "journal_name": "Scientific Data (Nature Portfolio)",
+    "Single-column width": "88 mm",
+    "Double-column width": "180 mm",
+    "Max figure height": "230 mm",
+    "Resolution": ">=300 DPI",
+    "Preferred formats": "TIFF, EPS, or PDF",
+    "Color mode": "RGB",
+    "Font": "sans-serif (Arial, Helvetica), 5-7 pt",
     "File size limit": "10 MB per figure",
-    "Figure titles": "Bold, placed in the legend/caption — NOT inside the figure",
-    "Statistical reporting": "Test name, statistic, df, exact p-value required; n= in figure or legend; error bars must be defined"
+    "Figure titles": "Brief descriptive title in the caption, not inside the figure",
+    "Statistical reporting": "Sample sizes should be stated; estimation methodology for extrapolated values should be described"
 }
